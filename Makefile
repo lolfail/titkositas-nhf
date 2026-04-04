@@ -3,7 +3,7 @@ CXXFLAGS = -Wall -std=c++11 -MMD -MP
 
 
 # Program Generation
-SOURCES = main.cpp BaseCipher.cpp XORCipher.cpp
+SOURCES = main.cpp Cipher.cpp CipherIterator.cpp XORCipher.cpp 
 
 OBJECTS = $(SOURCES:.cpp=.o)
 DEPS = $(SOURCES:.cpp=.d)

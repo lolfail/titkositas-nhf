@@ -1,15 +1,16 @@
 #pragma once
 
-#include "BaseCipher.h"
+#include "CipherAlgorithm.h"
 
-class XORCipher : public BaseCipher {
+class XORCipher : public Algorithm {
 private:
   unsigned int magic_key;
 
 public:
   explicit XORCipher(unsigned int);
-  ~XORCipher();
+  virtual ~XORCipher() = default;
 
   char transform(Mode, char) const override;
-  BaseCipher* clone() const override;
+
+  Algorithm* clone() const override;
 };
