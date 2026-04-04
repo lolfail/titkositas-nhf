@@ -1,14 +1,11 @@
 #!/bin/bash
 
-input_file=$1
-output_file="$(basename $1 .md).pdf"
-
 # start ydotool socket
 ydtsock="$HOME/.ydotool_socket" 
 sudo -b ydotoold --socket-path=$ydtsock --socket-own="$(id -u):$(id -g)" >/dev/null
 
 echo Generating $output_file
-pandoc -V lang=hu --pdf-engine=xelatex --output=$output_file $1 2>/dev/null
+make doc
 echo Generated $output_file
 
 echo Sending command to refresh Firefox
