@@ -11,7 +11,12 @@ private:
   Algorithm *cipher_algorithm;
   CipherView ciphered;
 
+  void uncipher_self_into(CipherView&) const;
+  void cipher_into_self(ConstCipherView);
+
 public:
+  void recipher_and_assign_data(const Cipher&);
+
   Cipher(Algorithm*);
   ~Cipher();
 
@@ -32,12 +37,6 @@ public:
 
   bool operator==(const Cipher&) const;
   bool operator!=(const Cipher&) const;
-
-  // TODO! delete
-  unsigned int call() const { 
-    XORCipher* cip = dynamic_cast<XORCipher*>(cipher_algorithm);
-    return cip->call();
-  };
 
   class const_iterator {
   private:

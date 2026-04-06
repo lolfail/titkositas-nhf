@@ -3,13 +3,13 @@
 #include "CipherAlgorithm.h"
 #include "CipherView.h"
 
-class XORCipher : public Algorithm {
+class CaesarCipher : public Algorithm {
 private:
-  unsigned int magic_key;
+  int shift;
 
 public:
-  explicit XORCipher(unsigned int);
-  virtual ~XORCipher() = default;
+  explicit CaesarCipher(int);
+  virtual ~CaesarCipher() = default;
 
   char transform(Algorithm::Mode, char) const override;
   // assume destination is large enough, but currently has len for views
