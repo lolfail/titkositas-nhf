@@ -1,13 +1,15 @@
 #pragma once
 
-#include "CipherAlgorithm.h"
 #include <cstddef>
+#include "CipherAlgorithm.h"
+#include "CipherView.h"
+#include "XORCipher.h"
+
 
 class Cipher {
 private:
   Algorithm *cipher_algorithm;
-  size_t ciphered_len;
-  char *ciphered_data;
+  CipherView ciphered;
 
 public:
   Cipher(Algorithm*);
@@ -24,46 +26,51 @@ public:
   Cipher& operator+=(const char*);
   Cipher operator+(const char*);
 
-  // should these require the entire thing to be recrypted? (context dependant?)
-  // a function defined such as is_context_dependant could help... or variable?
-  // for vigenére, the rhs needs to be unencrypted either way, but lhs does not.
-  // such an algorithm where lhs needs decrypting is context dependant ...
-  // but then do we need tracking for three states (enum into algo??) (decrypt: nothing, rhs only, lhs + rhs both)?
+  // these call a compatibility check algorithm and may uncipher the entire thing
   Cipher& operator+=(const Cipher&);
   Cipher operator+(const Cipher&);
 
-  class iterator {
+  bool operator==(const Cipher&) const;
+  bool operator!=(const Cipher&) const;
+
+  // TODO! delete
+  unsigned int call() const { 
+    XORCipher* cip = dynamic_cast<XORCipher*>(cipher_algorithm);
+    return cip->call();
+  };
+
+  class const_iterator {
   private:
-    Cipher* parent_cipher;
-    char *ciphered_ptr;
+    const Cipher* parent_cipher;
+    const char *ciphered_ptr;
 
   public:
-    iterator(Cipher*, char*);
+    const_iterator(const Cipher*, const char*);
 
     char operator*() const;
     char operator[](int idx) const;
 
-    iterator& operator+=(size_t);
-    iterator& operator-=(size_t);
+    const_iterator& operator+=(size_t);
+    const_iterator& operator-=(size_t);
 
-    iterator& operator++();
-    iterator& operator--();
-    iterator operator++(int);
-    iterator operator--(int);
+    const_iterator& operator++();
+    const_iterator& operator--();
+    const_iterator operator++(int);
+    const_iterator operator--(int);
 
-    iterator operator+(size_t) const;
-    iterator operator-(size_t) const;
+    const_iterator operator+(size_t) const;
+    const_iterator operator-(size_t) const;
 
-    bool operator==(const iterator&) const;
-    bool operator!=(const iterator&) const;
+    bool operator==(const const_iterator&) const;
+    bool operator!=(const const_iterator&) const;
 
-    bool operator<(const iterator&) const;
-    bool operator>=(const iterator&) const;
-    bool operator>(const iterator&) const;
-    bool operator<=(const iterator&) const;
+    bool operator<(const const_iterator&) const;
+    bool operator>=(const const_iterator&) const;
+    bool operator>(const const_iterator&) const;
+    bool operator<=(const const_iterator&) const;
 
-    ptrdiff_t operator-(const iterator&) const;
+    ptrdiff_t operator-(const const_iterator&) const;
   };
-  iterator begin();
-  iterator end();
+  const_iterator begin() const;
+  const_iterator end() const;
 };
