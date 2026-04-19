@@ -31,7 +31,7 @@ bool CaesarCipher::is_compatible_with(Algorithm* other_cipher) const {
   // then cipher shall decipher if this is false and then append unciphered
   CaesarCipher* cast_other_cipher = dynamic_cast<CaesarCipher*>(other_cipher);
   if (cast_other_cipher == nullptr) return false;
-  
+
   return cast_other_cipher->shift == this->shift;
 }
 

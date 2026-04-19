@@ -43,7 +43,6 @@ Cipher::Cipher(Algorithm *algo) :
 { }
 Cipher::~Cipher() {
   delete[] ciphered.data;
-  delete cipher_algorithm; // WARNING! if this is shallow copied, this will be nasty
   ciphered.len = 0;
 }
 

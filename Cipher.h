@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <ostream>
 #include "CipherAlgorithm.h"
 #include "CipherView.h"
 #include "XORCipher.h"
@@ -18,6 +19,7 @@ public:
   void recipher_and_assign_data(const Cipher&);
 
   Cipher(Algorithm*);
+  // Cipher does not own the memory, it will NOT free algo
   ~Cipher();
 
   // Copying algorithms all deep copy, so that we can avoid double frees and a reference counter.
@@ -37,6 +39,8 @@ public:
 
   bool operator==(const Cipher&) const;
   bool operator!=(const Cipher&) const;
+
+  char operator[](int idx) const;
 
   class const_iterator {
   private:

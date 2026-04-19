@@ -18,10 +18,12 @@ cipher: $(OBJECTS)
 
 
 # Documentation Generation
-DOCSOURCES = $(wildcard docs/*.md)
-DOCOBJECTS = $(DOCSOURCES:.md=.pdf)
+DOCSOURCES = $(wildcard docs/*.md) docs/diagram.puml
+DOCOBJECTS = $(DOCSOURCES:.md=.pdf) docs/diagram.svg
 doc: $(DOCOBJECTS)
 
+%.svg: %.puml
+	plantuml $< -tsvg
 %.pdf: %.md
 	pandoc -V lang=hu -t pdf -o $@ --pdf-engine=xelatex $<
 

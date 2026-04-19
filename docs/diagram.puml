@@ -1,0 +1,142 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam groupInheritance 1
+skinparam defaultFontName "Fira Code"
+skinparam packageStyle rectangle
+
+package views as "View Struct-ok" {
+  struct CipherView {
+    + data : char*
+    + len : size_t
+  }
+  struct ConstCipherView {
+    + data : const char*
+    + len : size_t
+  }
+}
+
+class Cipher {
+  - cipher_algorithm : Algorithm*
+  - ciphered : CipherView
+  ----
+  - uncipher_self_into(target : CipherView&) const : void
+  - cipher_into_self(source : ConstCipherView) : void
+
+  + recipher_and_assign_data(source : const Cipher&) : void
+  -- konstruktorok/destruktor --
+  + Cipher(injected_algorithm : Algorithm*)
+  + Cipher(copied_cipher : const Cipher&)
+  ~ Cipher()
+  -- iterator metódusok --
+  + begin() const : const_iterator
+  + end() const : const_iterator
+  -- operátorok --
+  ' copy and swap idiom
+  +operator[](idx : int) const : char
+
+  + operator=(rhs : const Cipher) : Cipher&
+  + operator=(rhs_cstr : const char*) : Cipher&
+
+  + operator+=(rhs_cstr : const char*) : Cipher&
+  + operator+(rhs_cstr : const char*) : Cipher
+
+  + operator+=(rhs_cipher : const Cipher&) : Cipher&
+  + operator+(rhs_cipher : const Cipher&) : Cipher
+
+  + operator==(rhs_cipher : const Cipher&) const : bool
+  + operator!=(rhs_cipher : const Cipher&) const : bool
+}
+
+class const_iterator {
+  - parent_cipher : const Cipher*
+  - ciphered_ptr : const char*
+  -- konstruktor --
+  + const_iterator(parent : const Cipher*, iter_ptr : const char*);
+  -- operátorok --
+  + operator*() const : char
+  + operator-(rhs_iter : const const_iterator&) const : ptrdiff_t
+  + operator[](idx : int) const : char
+
+  + operator+=(rhs_offset : size_t) : const_iterator&
+  + operator-=(rhs_offset : size_t) : const_iterator&
+
+  + operator++() : const_iterator&
+  + operator--() : const_iterator&
+
+  + operator++(postfix : int) : const_iterator
+  + operator--(postfix : int) : const_iterator
+
+  + operator+(rhs_offset : size_t) const : const_iterator
+  + operator-(rhs_offset : size_t) const : const_iterator
+
+  + operator==(rhs_iter : const const_iterator&) const : bool
+  + operator!=(rhs_iter : const const_iterator&) const : bool
+
+  + operator<(rhs_iter : const const_iterator&) const : bool
+  + operator>(rhs_iter : const const_iterator&) const : bool
+  + operator>=(rhs_iter : const const_iterator&) const : bool
+  + operator<=(rhs_iter : const const_iterator&) const : bool
+}
+
+enum Mode {
+  Encrypt
+  Decrypt
+}
+
+Interface Algorithm {
+  + transform(cipher_direction : Mode, enciphered : char) : char
+  + append_ciphered(target : CipherView&, source : ConstCipherView) : void
+  + append_unciphered(target : CipherView&, source : ConstCipherView) : void
+  + is_compatible_with(other_algorithm : Algorithm*) : bool
+  + clone() : Algorithm*
+}
+
+package algo_impl as "Algoritmus Realizációk" {
+  class XORCipher {
+    - magic_key : unsigned int
+    -- konstruktor/destruktor --
+    + XORCipher(key : unsigned int)
+    ~XORCipher()
+    ----
+    + clone() const : Algorithm*
+
+    + transform(cipher_direction : Mode, enciphered : char) const : char
+    + append_ciphered(target : CipherView&, source : ConstCipherView) const : void
+    + append_unciphered(target : CipherView&, source : ConstCipherView) const : void
+
+    + is_compatible_with(other_algorithm : Algorithm*) const : bool
+  }
+
+  class CaesarCipher {
+    - offset : int
+    -- konstruktor/destruktor --
+    + XORCipher(offset : int)
+    ~XORCipher()
+    ----
+    + clone() const : Algorithm*
+
+    + transform(cipher_direction : Mode, enciphered : char) const : char
+    + append_ciphered(target : CipherView&, source : ConstCipherView) const : void
+    + append_unciphered(target : CipherView&, source : ConstCipherView) const : void
+
+    + is_compatible_with(other_algorithm : Algorithm*) const : bool
+  }
+}
+
+Cipher *-- CipherView
+Cipher ..> ConstCipherView
+Cipher --> Algorithm
+
+const_iterator --+ Cipher
+const_iterator -> Cipher
+
+Algorithm +-left- Mode
+
+Algorithm .right.> CipherView
+Algorithm .right.> ConstCipherView
+Algorithm ..> Mode
+
+Algorithm <|.. XORCipher
+Algorithm <|.. CaesarCipher
+
+@enduml

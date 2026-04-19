@@ -1,6 +1,6 @@
 ---
 title: "**A programozás alapjai 2:** *Nagy házi*"
-subtitle: "Specifikáció"
+subtitle: "Specifikáció és tervezet"
 author: "Bencsik Gergő (`I48U0D`)"
 date: \today
 geometry: "margin=3cm"
@@ -61,7 +61,7 @@ Ha két különböző algoritmussal kódolt és tárolt objektumot fűzünk egym
 
 ## Iterátor
 
-Megkötés még, hogy a kódolt szöveg bejárható legyen *iterátorral*. Ezért a következő műveleteket, metódusokat kell definiálni az osztály iterátorán, hogy szokványos módon tudjunk dolgozni velük:
+Megkötés még, hogy a kódolt szöveg bejárható legyen *iterátorral*. Ezért a következő műveleteket, metódusokat kell definiálni az osztályon/iterátorán, hogy szokványos módon tudjunk dolgozni velük:
 
 | **operátor/metódus** | **célja**                                                             |
 | ---                  | ---                                                                   |
@@ -75,7 +75,7 @@ Megkötés még, hogy a kódolt szöveg bejárható legyen *iterátorral*. Ezér
 
 Az iterátora *random access iterator-szerű*. Táblázatból látható, hogy összehasonlíthatók, tetszőleges távval mozgathatók, ezen felül még indexelhetők is legyenek. Azonban fontos megjegyzés, hogy a dereferálásuk **értéket** ad vissza, nem referenciát. Illetve, a táblázatban nem szerepel, de legyen képezhető a *távolságuk*, egymásból kivonással.
 
-Nincs értelme két eltérő objektum iterátorának esetén több műveletnek is velük, azonban erre figyelni a felhasználó (programozó) feladata.
+Nincs értelme két eltérő objektum iterátorának esetén az összehasonlításuknak, sem a távolságuk meghatározásának (`-` operátor), azonban erre figyelni a felhasználó (programozó) feladata.
 
 ## Hibakezelés
 
@@ -87,6 +87,67 @@ Emellett hibákat az osztály *ne nyeljen el*, hagyja felbuborékozni például 
 
 ## Program tesztelése
 
-Az alaposztály teszteléséhez szükség lesz konkrétumokra, az egyes kódoló algoritmusok implementációjára. Így az alaposztály felhasználásával készült, már titkosításra is képes osztályokkal a főprogram a *standard input*-ról jövő szövegeken fog különféle műveleteket végezni, tesztelési célból, majd pedig ellenőrzni azok kimenetének helyességét.
+Az alaposztály teszteléséhez szükség lesz konkrétumokra, az egyes kódoló algoritmusok implementációjára. Így az alaposztályba ilyeneket *injektálva*, a főprogram a *standard input*-ról jövő szövegeken fog különféle műveleteket végezni, tesztelési célból, majd pedig ellenőrzni azok kimenetének helyességét.
 
 A teszteléshez egyrészt a `gtest_lite` könyvtárra, másrészt pedig valamely memóriaszivárgást ellenőrző programra lesz szükség.
+
+# Terv
+
+![A feladat tervezett osztálydiagramja.](./docs/diagram.svg)
+
+## Szabványostól eltérő jelölések értelmezése
+
+Az egyes objektumok bal felső sarkában látható színes karika, benne egy betűvel az objektum típusát írja le:
+
+| **Ikon/Karakter** | **Jelentése**  |
+| ---               | ---            |
+| `C`               | `class`        |
+| `S`               | `struct`       |
+| `E`               | `enum`         |
+| `I`               | `interface`    |
+
+Illetve a bekeretezése az egyes objektumoknak nem feltétlenül hordoz a kódban is megnyilvánuló jelentést, csak az osztálydiagram (és egyben a terv) értelmezéséhez nyújt segítséget.
+\newpage
+
+## Az interfészről
+
+Kiemelendő, hogy külön interfész mint nyelvi eszköz, nem létezik C++11-ben.
+Így ez csupán annyit jelent, hogy az `Algorithm` egy olyan "összefogó" *absztrakt osztály*, melynek csak metódusai vannak, adattagjai nem, és amiből az egyes titkosító algoritmus implementációk(osztályok) öröklenek (*realizálva* az interfészt), a *kompatibilitást* lehetővé téve.
+
+Erre azért van szükség, mivel a `Cipher` osztály (melyet a felhasználó programozó majd használ) *dependency injection*-el kapja meg az általa használandó titkosító algoritmust, melyektől elvárt, hogy azonos módon lehessen használni azokat.
+
+## A `View` struct-okról
+
+Ezek olyan struct-ok melyek tárolnak egy *pointert* a titkosított(vagy éppen titkosítatlan) szöveg kezdetére, és annak hosszát.
+
+Nincs destruktoruk, *nem "birtokolják"* az általuk tárolt memóriát, így nem is szabadíthatják azt fel.
+Pont ezen okból nem is `class`-ok, hanem `struct`-ok. Azt próbálja sugallni, hogy annál egy egyszerűbb adatszerkezetről van szó.
+
+A `ConstCipherView` és `CipherView` között pedig a különbség, hogy az első által tárolt memóriaterület nem módosítható. Erre a akkor van szükség amikor csak olvasásra szeretnénk átadni a szöveget.
+
+## Titkosító algoritmusok
+
+A feladat nem tartalmazza az egyes titkosító algoritmusok elkészítését, viszont teszteléshez nyilvánvalóan szükségesek. Így jelenleg erre kettő van csak definiálva, amik az osztálydiagramon is láthatók.
+A belső működésük lényegtelen az azokat használó osztály számára, elvárt, hogy azonos módon lehessen őket használni (az interfész által definiált módon).
+
+### `XORCipher`
+
+Szokásos *kizáró vagyot* használó titkosítási algoritmus.
+
+$$
+c_e = c_d \oplus k
+$$
+
+Ahol $c_e$ a titkosított, $c_d$ a titkosítatlan karakter (`char`), $k$ pedig a titkosításhoz használt kulcs.
+A dekódoláshoz ugyanezt kell alkalmazni ismét, csak ezúttal a titkosított karakterre.
+
+### `CaesarCipher`
+
+*Caesar-kódolás*, amely megenged karakter értéke szerinti, visszafelé történő eltolást is.
+
+$$
+c_e = c_d + s
+$$
+
+$c_e$ a titkosított, $c_d$ a titkosítatlan karakter, az $s$ pedig az *eltolás* mértéke (mely lehet negatív is ezen megvalósításban).
+A dekódoláshoz az eltolás mértékét pedig éppen negált előjellel kell venni.
