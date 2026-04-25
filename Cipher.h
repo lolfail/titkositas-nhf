@@ -12,13 +12,15 @@ private:
   Algorithm *cipher_algorithm;
   CipherView ciphered;
 
+  mutable char *plaintext_buffer;
+
   void uncipher_self_into(CipherView&) const;
   void cipher_into_self(ConstCipherView);
 
 public:
   void recipher_and_assign_data(const Cipher&);
 
-  Cipher(Algorithm*);
+  Cipher(Algorithm* = nullptr);
   // Cipher does not own the memory, it will NOT free algo
   ~Cipher();
 
@@ -40,7 +42,9 @@ public:
   bool operator==(const Cipher&) const;
   bool operator!=(const Cipher&) const;
 
-  char operator[](int idx) const;
+  char operator[](size_t) const;
+  // c_str is lazily evaluated, and result must be immediately used as it may change
+  char* c_str() const;
 
   class const_iterator {
   private:

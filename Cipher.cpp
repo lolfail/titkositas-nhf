@@ -1,5 +1,7 @@
 #include <cstring>
 #include <algorithm>
+#include <stdexcept>
+
 #include "Cipher.h"
 #include "CipherAlgorithm.h"
 #include "CipherView.h"
@@ -39,20 +41,24 @@ void Cipher::recipher_and_assign_data(const Cipher &source_cipher) {
 
 Cipher::Cipher(Algorithm *algo) :
   cipher_algorithm(algo),
-  ciphered(nullptr, 0)
+  ciphered(nullptr, 0),
+  plaintext_buffer(nullptr)
 { }
 Cipher::~Cipher() {
   delete[] ciphered.data;
   ciphered.len = 0;
+
+  delete[] plaintext_buffer;
 }
 
-Cipher::Cipher(const Cipher &rhs_cipher) {
-  ciphered.len = rhs_cipher.ciphered.len;
-  ciphered.data = new char[ciphered.len];
+Cipher::Cipher(const Cipher &rhs_cipher) :
+  cipher_algorithm(rhs_cipher.cipher_algorithm->clone()),
+  ciphered(new char[rhs_cipher.ciphered.len], rhs_cipher.ciphered.len),
+  plaintext_buffer(nullptr)
+{
+  // copy only ciphered data
   for (size_t i = 0; i < ciphered.len; ++i)
     ciphered.data[i] = rhs_cipher.ciphered.data[i];
-
-  cipher_algorithm = rhs_cipher.cipher_algorithm->clone();
 }
 void swap(Cipher &a, Cipher &b) noexcept {
   using std::swap;
@@ -131,4 +137,22 @@ bool Cipher::operator==(const Cipher &rhs_cipher) const {
 }
 bool Cipher::operator!=(const Cipher &rhs_cipher) const {
   return !(*this == rhs_cipher);
+}
+
+char Cipher::operator[](size_t idx) const {
+  if (idx >= ciphered.len)
+    throw std::out_of_range("Provided index was not within the data.");
+  return cipher_algorithm->transform(Algorithm::Mode::Decrypt, ciphered.data[idx]);
+}
+
+char* Cipher::c_str() const {
+  size_t allocated = ciphered.len + 1;
+  CipherView unciphered_view = CipherView(new char[allocated], allocated);
+
+  this->uncipher_self_into(unciphered_view);
+  unciphered_view.data[unciphered_view.len] = '\0';
+
+  delete[] plaintext_buffer;
+  plaintext_buffer = unciphered_view.data;
+  return plaintext_buffer;
 }

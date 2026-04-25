@@ -2,3 +2,5 @@
 *.d
 
 cipher
+
+gtest_lite.h
