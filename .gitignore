@@ -4,3 +4,5 @@
 cipher
 
 gtest_lite.h
+
+docs/reloaddiagram.sh

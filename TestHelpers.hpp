@@ -3,6 +3,7 @@
 
 #include "gtest_lite.h"
 
+#include "CipherAlgorithm.h"
 #include "Cipher.h"
 #include "XORCipher.h"
 
@@ -16,29 +17,47 @@ inline char* allocate_concatenated(const char *lhs, const char *rhs) {
 inline const char* get_cstr_value(const Cipher &cipher) { return cipher.c_str(); }
 inline const char* get_cstr_value(const char *cstr) { return cstr; }
 
-inline void initialize_object(Cipher &target, int key, const char *cstr) {
-  target = Cipher(new XORCipher(key));
-  target = cstr;
-}
-inline void initialize_object(const char *&target, int key, const char *cstr) {
-  target = cstr;
+template <typename TAlgorithm>
+constexpr bool is_cstr() {
+  return std::is_same<TAlgorithm, const char*>::value;
 }
 
-template <bool is_object>
-using CipherOrCString =
-  typename std::conditional<is_object, Cipher, const char*>::type;
+// so logic is built into typesystem
+template <bool to_enable>
+using algoptr_return_if =
+  typename std::enable_if<to_enable, Algorithm*>::type;
 
+template <typename TAlgorithm>
+algoptr_return_if<!is_cstr<TAlgorithm>()>
+init_object_return_alloc(Cipher &target, int key, const char *cstr) {
+  Algorithm *ptr = new TAlgorithm(key);
+  target = Cipher(ptr);
+  target = cstr;
+  return ptr;
+}
+template <typename TAlgorithm>
+algoptr_return_if<is_cstr<TAlgorithm>()>
+init_object_return_alloc(const char *&target, int key, const char *cstr) {
+  target = cstr;
+  return nullptr;
+}
 
-template <bool is_append, bool is_lhs_object, bool is_rhs_object>
+template <bool is_cstr>
+using CStringElseCipher =
+  typename std::conditional<is_cstr, const char*, Cipher>::type;
+
+template <bool is_append, typename Tlhs, typename Trhs>
 void test_concatenation(const char *init_lhs, const int key_lhs, const char *init_rhs, const int key_rhs) {
-  static_assert(!(is_append && !is_lhs_object), "Operation: const char* += ... is not defined!");
-  static_assert(is_lhs_object || is_rhs_object, "Operation: const char* + const char* is not defined!");
+  constexpr bool is_lhs_cstr = is_cstr<Tlhs>();
+  constexpr bool is_rhs_cstr = is_cstr<Trhs>();
 
-  CipherOrCString<is_lhs_object> lhs;
-  initialize_object(lhs, key_lhs, init_lhs);
+  static_assert(!(is_append && is_lhs_cstr), "Operation: const char* += ... is not defined!");
+  static_assert(!(is_lhs_cstr && is_rhs_cstr), "Operation: const char* + const char* is not defined!");
 
-  CipherOrCString<is_rhs_object> rhs;
-  initialize_object(rhs, key_rhs, init_rhs);
+  CStringElseCipher<is_lhs_cstr> lhs;
+  Algorithm *lhs_algo = init_object_return_alloc<Tlhs>(lhs, key_lhs, init_lhs); // defer delete
+  CStringElseCipher<is_rhs_cstr> rhs;
+  Algorithm *rhs_algo = init_object_return_alloc<Trhs>(rhs, key_rhs, init_rhs); // defer delete
 
   Cipher resulting_cipher;
   if (is_append)
@@ -58,11 +77,41 @@ void test_concatenation(const char *init_lhs, const int key_lhs, const char *ini
   EXPECT_STREQ(resulting_cipher.c_str(), expected_result)
     << "Result differs from expected!";
   delete[] expected_result;
+
+  delete rhs_algo;
+  delete lhs_algo;
 }
 
-template <class TAlgorithm, typename TAlgorithmParam>
+
+template <typename TAlgorithm, typename TAlgorithmParam>
 Cipher allocate_initialized_cipher(TAlgorithmParam init_param, const char *cstr) {
   Cipher initialized_cipher(new TAlgorithm(init_param));
   initialized_cipher = cstr;
   return initialized_cipher;
+}
+
+
+template <bool eq_op, typename Tlhs, typename Trhs>
+void test_logic_operation(const char *init_lhs, const int key_lhs, const char *init_rhs, const int key_rhs) {
+  constexpr bool is_lhs_cstr = is_cstr<Tlhs>();
+  constexpr bool is_rhs_cstr = is_cstr<Trhs>();
+
+  static_assert(!(is_lhs_cstr && is_rhs_cstr), "Test case: const char* [op] const char* does not test the library!");
+
+  CStringElseCipher<is_lhs_cstr> lhs;
+  Algorithm *lhs_algo = init_object_return_alloc<Tlhs>(lhs, key_lhs, init_lhs); // defer delete
+  CStringElseCipher<is_rhs_cstr> rhs;
+  Algorithm *rhs_algo = init_object_return_alloc<Trhs>(rhs, key_rhs, init_rhs); // defer delete
+
+  bool expected_eq = strcmp(init_lhs, init_rhs) == 0;
+  if (eq_op) {
+    EXPECT_EQ(expected_eq, (lhs == rhs))
+      << "Library handled equality differently than expected!";
+  } else {
+    EXPECT_EQ(!expected_eq, (lhs != rhs))
+      << "Library handled inequality differently than expected!";
+  }
+
+  delete rhs_algo;
+  delete lhs_algo;
 }

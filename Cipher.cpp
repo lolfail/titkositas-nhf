@@ -121,16 +121,18 @@ Cipher Cipher::operator+(const Cipher &rhs_cipher) {
   return cipher_cpy;
 }
 
+char Cipher::operator[](size_t idx) const {
+  if (idx >= ciphered.len)
+    throw std::out_of_range("Provided index was not within the data.");
+  return cipher_algorithm->transform(Algorithm::Mode::Decrypt, ciphered.data[idx]);
+}
+
 bool Cipher::operator==(const Cipher &rhs_cipher) const {
   bool are_equal_length = this->ciphered.len == rhs_cipher.ciphered.len;
   if (!are_equal_length) return false;
 
-  for (
-    auto this_it = this->begin(), rhs_it = rhs_cipher.begin();
-    this_it != this->end(); // at this point they must be same length
-    ++this_it, ++rhs_it
-  ) {
-    if (*this_it != *rhs_it) return false;
+  for (size_t i = 0; i < this->ciphered.len; ++i) {
+    if ((*this)[i] != rhs_cipher[i]) return false;
   }
 
   return true;
@@ -138,11 +140,18 @@ bool Cipher::operator==(const Cipher &rhs_cipher) const {
 bool Cipher::operator!=(const Cipher &rhs_cipher) const {
   return !(*this == rhs_cipher);
 }
+bool Cipher::operator==(const char *rhs_cstr) const {
+  bool are_equal_length = this->ciphered.len == strlen(rhs_cstr);
+  if (!are_equal_length) return false;
 
-char Cipher::operator[](size_t idx) const {
-  if (idx >= ciphered.len)
-    throw std::out_of_range("Provided index was not within the data.");
-  return cipher_algorithm->transform(Algorithm::Mode::Decrypt, ciphered.data[idx]);
+  for (size_t i = 0; i < this->ciphered.len; ++i) {
+    if ((*this)[i] != rhs_cstr[i]) return false;
+  }
+
+  return true;
+}
+bool Cipher::operator!=(const char *rhs_cstr) const {
+  return !(*this == rhs_cstr);
 }
 
 char* Cipher::c_str() const {

@@ -39,12 +39,16 @@ public:
   Cipher& operator+=(const Cipher&);
   Cipher operator+(const Cipher&);
 
+  char operator[](size_t) const;
+
   bool operator==(const Cipher&) const;
   bool operator!=(const Cipher&) const;
+  bool operator==(const char*) const;
+  bool operator!=(const char*) const;
 
-  char operator[](size_t) const;
   // c_str is lazily evaluated, and result must be immediately used as it may change
   char* c_str() const;
+  size_t len() const { return ciphered.len; };
 
   class const_iterator {
   private:

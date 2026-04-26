@@ -27,21 +27,21 @@ const_iterator& const_iterator::operator-=(size_t rhs) {
 }
 
 const_iterator& const_iterator::operator++() {
-  ciphered_ptr++;
+  ++ciphered_ptr;
   return *this;
 }
 const_iterator& const_iterator::operator--() {
-  ciphered_ptr--;
+  ++ciphered_ptr;
   return *this;
 }
 const_iterator const_iterator::operator++(int) {
   auto tmp = *this;
-  ciphered_ptr++;
+  ++ciphered_ptr;
   return tmp;
 }
 const_iterator const_iterator::operator--(int) {
   auto tmp = *this;
-  ciphered_ptr--;
+  --ciphered_ptr;
   return tmp;
 }
 
