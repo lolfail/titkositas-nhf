@@ -1,10 +1,11 @@
 #pragma once
+#include <cstddef>
 #include <type_traits>
 
 #include "gtest_lite.h"
 
-#include "CipherAlgorithm.h"
 #include "Cipher.h"
+#include "CipherAlgorithm.h"
 #include "XORCipher.h"
 
 inline char* allocate_concatenated(const char *lhs, const char *rhs) {
@@ -24,22 +25,19 @@ constexpr bool is_cstr() {
 
 // so logic is built into typesystem
 template <bool to_enable>
-using algoptr_return_if =
-  typename std::enable_if<to_enable, Algorithm*>::type;
+using void_return_if =
+  typename std::enable_if<to_enable, void>::type;
 
 template <typename TAlgorithm>
-algoptr_return_if<!is_cstr<TAlgorithm>()>
-init_object_return_alloc(Cipher &target, int key, const char *cstr) {
-  Algorithm *ptr = new TAlgorithm(key);
-  target = Cipher(ptr);
+void_return_if<!is_cstr<TAlgorithm>()>
+init_polymorphic_object(Cipher &target, int key, const char *cstr) {
+  target = Cipher(new TAlgorithm(key));
   target = cstr;
-  return ptr;
 }
 template <typename TAlgorithm>
-algoptr_return_if<is_cstr<TAlgorithm>()>
-init_object_return_alloc(const char *&target, int key, const char *cstr) {
+void_return_if<is_cstr<TAlgorithm>()>
+init_polymorphic_object(const char *&target, int key, const char *cstr) {
   target = cstr;
-  return nullptr;
 }
 
 template <bool is_cstr>
@@ -55,9 +53,9 @@ void test_concatenation(const char *init_lhs, const int key_lhs, const char *ini
   static_assert(!(is_lhs_cstr && is_rhs_cstr), "Operation: const char* + const char* is not defined!");
 
   CStringElseCipher<is_lhs_cstr> lhs;
-  Algorithm *lhs_algo = init_object_return_alloc<Tlhs>(lhs, key_lhs, init_lhs); // defer delete
+  init_polymorphic_object<Tlhs>(lhs, key_lhs, init_lhs);
   CStringElseCipher<is_rhs_cstr> rhs;
-  Algorithm *rhs_algo = init_object_return_alloc<Trhs>(rhs, key_rhs, init_rhs); // defer delete
+  init_polymorphic_object<Trhs>(rhs, key_rhs, init_rhs);
 
   Cipher resulting_cipher;
   if (is_append)
@@ -77,9 +75,6 @@ void test_concatenation(const char *init_lhs, const int key_lhs, const char *ini
   EXPECT_STREQ(resulting_cipher.c_str(), expected_result)
     << "Result differs from expected!";
   delete[] expected_result;
-
-  delete rhs_algo;
-  delete lhs_algo;
 }
 
 
@@ -99,9 +94,9 @@ void test_logic_operation(const char *init_lhs, const int key_lhs, const char *i
   static_assert(!(is_lhs_cstr && is_rhs_cstr), "Test case: const char* [op] const char* does not test the library!");
 
   CStringElseCipher<is_lhs_cstr> lhs;
-  Algorithm *lhs_algo = init_object_return_alloc<Tlhs>(lhs, key_lhs, init_lhs); // defer delete
+  init_polymorphic_object<Tlhs>(lhs, key_lhs, init_lhs);
   CStringElseCipher<is_rhs_cstr> rhs;
-  Algorithm *rhs_algo = init_object_return_alloc<Trhs>(rhs, key_rhs, init_rhs); // defer delete
+  init_polymorphic_object<Trhs>(rhs, key_rhs, init_rhs);
 
   bool expected_eq = strcmp(init_lhs, init_rhs) == 0;
   if (eq_op) {
@@ -111,7 +106,31 @@ void test_logic_operation(const char *init_lhs, const int key_lhs, const char *i
     EXPECT_EQ(!expected_eq, (lhs != rhs))
       << "Library handled inequality differently than expected!";
   }
+}
 
-  delete rhs_algo;
-  delete lhs_algo;
+inline ptrdiff_t iterator_position_from_start(const Cipher &parent, const Cipher::const_iterator &it) {
+  return it - parent.begin();
+}
+
+struct IteratorOffsettingValues {
+  size_t initial_shift;
+  ptrdiff_t returned_expected_shift;
+  ptrdiff_t original_expected_shift;
+  IteratorOffsettingValues(size_t init, ptrdiff_t ret, ptrdiff_t orig)
+    : initial_shift(init), returned_expected_shift(ret), original_expected_shift(orig) {}
+};
+template <typename TAlgorithm, typename TAlgorithmParam, typename F>
+void test_iterator_offsetting(F iterator_operator, TAlgorithmParam key, const char *cstr, const IteratorOffsettingValues &iter_offsets) {
+  Cipher cipher = allocate_initialized_cipher<TAlgorithm>(key, cstr);
+  Cipher::const_iterator it_original = cipher.begin() + iter_offsets.initial_shift;
+
+  Cipher::const_iterator it_return = iterator_operator(it_original);
+
+  ptrdiff_t original_delta = iterator_position_from_start(cipher, it_original);
+  EXPECT_EQ(original_delta, iter_offsets.original_expected_shift)
+    << "The original iterator's position does not match that of expected!";
+
+  ptrdiff_t returned_delta = iterator_position_from_start(cipher, it_return);
+  EXPECT_EQ(returned_delta, iter_offsets.returned_expected_shift)
+    << "The returned iterator's position does not match that of expected!";
 }

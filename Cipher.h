@@ -21,11 +21,10 @@ public:
   void recipher_and_assign_data(const Cipher&);
 
   Cipher(Algorithm* = nullptr);
-  // Cipher does not own the memory, it will NOT free algo
+  // Cipher OWNS algorithm will be freed => can not be shared
   ~Cipher();
 
   // Copying algorithms all deep copy, so that we can avoid double frees and a reference counter.
-  // However, it may be worthwhile to be able to specify via a macro whether to shallow or deep copy...
   Cipher(const Cipher&);
   friend void swap(Cipher&, Cipher&) noexcept;
   Cipher& operator=(const Cipher);
@@ -57,6 +56,10 @@ public:
 
   public:
     const_iterator(const Cipher*, const char*);
+
+    const_iterator(const const_iterator&);
+    friend void swap(const_iterator&, const_iterator&) noexcept;
+    const_iterator& operator=(const const_iterator);
 
     char operator*() const;
     char operator[](int idx) const;

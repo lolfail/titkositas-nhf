@@ -4,5 +4,6 @@
 cipher
 
 gtest_lite.h
+memtrace.*
 
 docs/reloaddiagram.sh

@@ -1,7 +1,10 @@
-#include "CaesarCipher.h"
+#include <cstring>
+
+#include "memtrace.h"
+
 #include "CipherAlgorithm.h"
 #include "CipherView.h"
-#include <cstring>
+#include "CaesarCipher.h"
 
 CaesarCipher::CaesarCipher(int shift) : shift(shift) {}
 

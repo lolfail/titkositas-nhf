@@ -1,8 +1,8 @@
 #include <cstddef>
-#include <iostream>
 #include <stdexcept>
 #include <cstring>
 
+#include "memtrace.h"
 #include "gtest_lite.h"
 #include "TestHelpers.hpp"
 
@@ -25,7 +25,7 @@ int main() {
   TEST(integrity, empty_c_str_call)
     const int key = 42;
     Cipher empty(new XORCipher(key));
-    
+
     EXPECT_NO_THROW(empty.c_str())
       << "Did not handle empty string without errors!";
     EXPECT_STREQ(empty.c_str(), "")
@@ -197,96 +197,69 @@ void call_iterator_tests() {
       << "Dereferencing differed from expected value!";
   END
 
-  TEST(iterator, prefix)
-    const char *cstr = "abc";
+  TEST(iterator, add_sub_distance)
+    const char *cstr = "abcdefg";
     Cipher cipher = allocate_initialized_cipher<XORCipher>(42, cstr);
     Cipher::const_iterator it = cipher.begin();
 
-    auto it_prefix_copy = ++it;
-    EXPECT_EQ(*it_prefix_copy, *it)
-      << "Prefix increment operator's pointed value differed from expected!";
+    const size_t shift = 2;
+    Cipher::const_iterator it_shifted = it + shift;
+    EXPECT_EQ(iterator_position_from_start(cipher, it_shifted), ptrdiff_t(shift))
+      << "Addition on an iterator did not work correctly or distance was reported falsely!";
+    EXPECT_NE(iterator_position_from_start(cipher, it_shifted), iterator_position_from_start(cipher, it))
+      << "Addition on an iterator modified original iterator!";
 
-    it_prefix_copy = --it;
-    EXPECT_EQ(*it_prefix_copy, *it)
-      << "Prefix decrement operator's pointed value differed from expected!";
-  END
-  TEST(iterator, postfix)
-    const char *cstr = "abc";
-    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, cstr);
-    Cipher::const_iterator it = cipher.begin();
-
-    auto it_postfix_copy = it++;
-    EXPECT_EQ(*it, cstr[1])
-      << "Iterator's pointed value differed from that of expected!";
-    EXPECT_EQ(*it_postfix_copy, cstr[0])
-      << "Postfix incremented iterator did not return a copy to the past!";
-
-    it_postfix_copy = it--;
-    EXPECT_EQ(*it, cstr[0])
-      << "Iterator's pointed value differed from that of expected!";
-    EXPECT_EQ(*it_postfix_copy, cstr[1])
-      << "Postfix decremented iterator did not return a copy to the past!";
+    it_shifted = (it + shift) - shift;
+    EXPECT_EQ(iterator_position_from_start(cipher, it_shifted), 0)
+      << "Addition then subtraction of the same value on the same iterator failed to return it to the beginning!";
+    EXPECT_NE(&it_shifted, &it) // meh
+      << "Subtraction on an iterator modified original iterator!";
   END
 
-  TEST(iterator, addition)
-    const char *cstr = "abc";
-    const unsigned int shift = 1;
-    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, cstr);
-
-    Cipher::const_iterator it = cipher.begin();
-    Cipher::const_iterator shifted_it = it + shift;
-
-    EXPECT_EQ(*shifted_it, cstr[shift])
-      << "Shifting iterator(positively) did not shift as expected!";
-    EXPECT_EQ(*it, cstr[0])
-      << "Original iterator was modified!";
+  TEST(iterator, prefix_dec)
+    auto prefix_decrement_callback = [](Cipher::const_iterator &it) { return --it; };
+    test_iterator_offsetting<XORCipher>(prefix_decrement_callback, 42, "Hello World!", IteratorOffsettingValues(2, 1, 1));
   END
-  TEST(iterator, substraction)
-    const char *cstr = "abc";
-    const unsigned int shift = 1;
-    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, cstr);
-
-    Cipher::const_iterator it = cipher.begin() + shift;
-    Cipher::const_iterator shifted_it = it - shift;
-
-    EXPECT_EQ(*shifted_it, cstr[0])
-      << "Shifting iterator(negatively) did not shift as expected!";
-    EXPECT_EQ(*it, cstr[shift])
-      << "Original iterator was modified!";
+  TEST(iterator, prefix_inc)
+    auto prefix_increment_callback = [](Cipher::const_iterator &it) { return ++it; };
+    test_iterator_offsetting<XORCipher>(prefix_increment_callback, 42, "Hello World!", IteratorOffsettingValues(2, 3, 3));
   END
-  // TODO! test negative shifts
+  TEST(iterator, postfix_dec)
+    auto prefix_decrement_callback = [](Cipher::const_iterator &it) { return it--; };
+    test_iterator_offsetting<XORCipher>(prefix_decrement_callback, 42, "Hello World!", IteratorOffsettingValues(2, 2, 1));
+  END
+  TEST(iterator, postfix_inc)
+    auto prefix_increment_callback = [](Cipher::const_iterator &it) { return it++; };
+    test_iterator_offsetting<XORCipher>(prefix_increment_callback, 42, "Hello World!", IteratorOffsettingValues(2, 2, 3));
+  END
 
-  TEST(iterator, distance)
-    const int shift = 2;
-    const char *cstr = "abc";
-    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, cstr);
+  TEST(iterator, compound_assignment_add)
+    const size_t shift = 2;
+    const char *cstr = "Hello World!";
 
-    Cipher::const_iterator it_lhs = cipher.begin() + shift;
-    Cipher::const_iterator it_rhs = cipher.begin();
+    auto compound_add = [shift](Cipher::const_iterator &it) {return it += shift;};
+    test_iterator_offsetting<XORCipher>(compound_add, 42, cstr, IteratorOffsettingValues(2, 4, 4));
+  END
+  TEST(iterator, compound_assigment_sub)
+    const size_t shift = 2;
+    const char *cstr = "Hello World!";
 
-    int diff = it_lhs - it_rhs;
-    EXPECT_EQ(diff, shift)
-      << "The distance of the iterators does not match amount shifted from the beginning!";
+    auto compound_sub = [shift](Cipher::const_iterator &it) {return it -= shift;};
+    test_iterator_offsetting<XORCipher>(compound_sub, 42, cstr, IteratorOffsettingValues(2, 0, 0));
   END
 
   TEST(iterator, indexing)
     const char *cstr = "abc";
     Cipher cipher = allocate_initialized_cipher<XORCipher>(42, cstr);
-    
-    int shift = 1;
-    int idx = 1;
 
-    Cipher::const_iterator it = cipher.begin() + shift;
+    auto index_test = [cipher, cstr](int shift, int idx) {
+      Cipher::const_iterator it = cipher.begin() + shift;
+      EXPECT_EQ(it[idx], cstr[shift + idx])
+        << "Indexing operator did not yield expected result(" << (idx > 0 ? "positive" : "negative") << " index)!";
+    };
 
-    EXPECT_EQ(it[idx], cstr[shift + idx])
-      << "Indexing operator (positive integer) did not return the expected value!";
-
-    shift = -1;
-    idx = 1;
-    it = cipher.begin() + shift;
-
-    EXPECT_EQ(it[idx], cstr[shift + idx])
-      << "Indexing operator (negative integer) did not return the expected value!";
+    index_test(1, 1);
+    index_test(1, -1);
   END
 
   TEST(iterator, foreach)

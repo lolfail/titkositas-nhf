@@ -1,12 +1,15 @@
 CXX = g++
-CXXFLAGS = -Wall -std=c++11 -MMD -MP
+CXXFLAGS = -Wall -std=c++11 -MMD -MP -DMEMTRACE
 
 
 # Program Generation
 SOURCES = main.cpp Cipher.cpp CipherIterator.cpp XORCipher.cpp CaesarCipher.cpp
+DEBUG = memtrace.cpp
 
-OBJECTS = $(SOURCES:.cpp=.o)
-DEPS = $(SOURCES:.cpp=.d)
+CPP = $(SOURCES) $(DEBUG)
+
+OBJECTS = $(CPP:.cpp=.o)
+DEPS = $(CPP:.cpp=.d)
 -include $(DEPS)
 
 cipher: $(OBJECTS)

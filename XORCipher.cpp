@@ -1,7 +1,10 @@
-#include "XORCipher.h"
+#include <cstring>
+
+#include "memtrace.h"
+
 #include "CipherAlgorithm.h"
 #include "CipherView.h"
-#include <cstring>
+#include "XORCipher.h"
 
 XORCipher::XORCipher(unsigned int key) : magic_key(key) {}
 

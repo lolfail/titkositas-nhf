@@ -1,13 +1,29 @@
+#include <cstddef>
+#include <algorithm>
+
 #include "Cipher.h"
 #include "CipherAlgorithm.h"
-#include <cstddef>
 
 using const_iterator = Cipher::const_iterator;
 
 const_iterator::const_iterator(const Cipher* parent_ptr, const char *pointed_char) :
   parent_cipher(parent_ptr),
   ciphered_ptr(pointed_char)
-{}
+{ }
+
+const_iterator::const_iterator(const const_iterator &source_iter) :
+  parent_cipher(source_iter.parent_cipher),
+  ciphered_ptr(source_iter.ciphered_ptr)
+{ }
+void swap(const_iterator &a, const_iterator &b) noexcept {
+  using std::swap;
+  swap(a.parent_cipher, b.parent_cipher);
+  swap(a.ciphered_ptr, b.ciphered_ptr);
+}
+const_iterator& const_iterator::operator=(const_iterator source_iter) {
+  swap(*this, source_iter);
+  return *this;
+}
 
 char const_iterator::operator*() const {
   using Mode = Algorithm::Mode;
@@ -31,7 +47,7 @@ const_iterator& const_iterator::operator++() {
   return *this;
 }
 const_iterator& const_iterator::operator--() {
-  ++ciphered_ptr;
+  --ciphered_ptr;
   return *this;
 }
 const_iterator const_iterator::operator++(int) {

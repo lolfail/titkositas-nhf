@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "memtrace.h"
+
 #include "Cipher.h"
 #include "CipherAlgorithm.h"
 #include "CipherView.h"
@@ -23,7 +25,7 @@ void Cipher::uncipher_self_into(CipherView &destination_view) const {
 }
 void Cipher::cipher_into_self(ConstCipherView source_view) {
   // buffered because we do not know wheter underlying algorithm depends on previous characters
-  CipherView buffer(new char[ciphered.len], 0);
+  CipherView buffer(new char[source_view.len], 0);
   cipher_algorithm->append_unciphered(buffer, source_view);
 
   delete[] ciphered.data;
@@ -49,6 +51,9 @@ Cipher::~Cipher() {
   ciphered.len = 0;
 
   delete[] plaintext_buffer;
+
+  // Cipher OWNS algorithm
+  delete cipher_algorithm;
 }
 
 Cipher::Cipher(const Cipher &rhs_cipher) :
@@ -102,13 +107,14 @@ Cipher& Cipher::operator+=(const Cipher &rhs_cipher) {
 
   memcpy(ciphered_appended.data, this->ciphered.data, this->ciphered.len);
 
-  bool can_append_without_unciphering = cipher_algorithm->is_compatible_with(rhs_cipher.cipher_algorithm);
+  bool can_append_without_unciphering = this->cipher_algorithm->is_compatible_with(rhs_cipher.cipher_algorithm);
   if (can_append_without_unciphering)
-    cipher_algorithm->append_ciphered(ciphered_appended, rhs_cipher.ciphered);
+    this->cipher_algorithm->append_ciphered(ciphered_appended, rhs_cipher.ciphered);
   else {
     CipherView unciphered_view(new char[rhs_cipher.ciphered.len], 0);
     rhs_cipher.uncipher_self_into(unciphered_view);
-    cipher_algorithm->append_unciphered(ciphered_appended, unciphered_view);
+    this->cipher_algorithm->append_unciphered(ciphered_appended, unciphered_view);
+    delete[] unciphered_view.data;
   }
 
   delete[] ciphered.data;
