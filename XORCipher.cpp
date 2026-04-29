@@ -12,8 +12,6 @@ char XORCipher::transform(Algorithm::Mode, char from_ch) const {
   return from_ch ^ magic_key;
 }
 
-// these append instead of filling up the respective view from start,
-// because some algorithms have to know the position
 void XORCipher::append_ciphered(CipherView &destination, ConstCipherView source) const {
   for (size_t i = 0; i < source.len; ++i)
     destination.data[i + destination.len] = source.data[i];

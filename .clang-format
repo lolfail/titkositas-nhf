@@ -1,0 +1,12 @@
+# .clang-format
+Language: Cpp
+BasedOnStyle: Google
+
+NamespaceIndentation: All
+
+ColumnLimit: 0
+ReflowComments: false
+BreakStringLiterals: false
+
+IndentWidth: 2
+ContinuationIndentWidth: 2

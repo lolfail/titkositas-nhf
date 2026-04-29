@@ -24,7 +24,7 @@ public:
   // Cipher OWNS algorithm will be freed => can not be shared
   ~Cipher();
 
-  // Copying algorithms all deep copy, so that we can avoid double frees and a reference counter.
+  // Copying algorithms all deep copy, to avoid double frees
   Cipher(const Cipher&);
   friend void swap(Cipher&, Cipher&) noexcept;
   Cipher& operator=(const Cipher);

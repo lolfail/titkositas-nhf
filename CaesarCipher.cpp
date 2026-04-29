@@ -16,8 +16,6 @@ char CaesarCipher::transform(Algorithm::Mode cipher_mode, char unciphered_char) 
     return (cipher - shift) % 256;
 }
 
-// these append instead of filling up the respective view from start,
-// because some algorithms have to know the position
 void CaesarCipher::append_ciphered(CipherView &destination, ConstCipherView source) const {
   for (size_t i = 0; i < source.len; ++i)
     destination.data[i + destination.len] = source.data[i];
