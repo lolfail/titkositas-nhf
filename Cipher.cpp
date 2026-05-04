@@ -24,7 +24,7 @@ void Cipher::uncipher_self_into(CipherView &destination_view) const {
   destination_view.len = this->ciphered.len;
 }
 void Cipher::cipher_into_self(ConstCipherView source_view) {
-  // buffered because we do not know wheter underlying algorithm depends on previous characters
+  // buffered because underlying algorithm may depend on previous characters in the future
   CipherView buffer(new char[source_view.len], 0);
   cipher_algorithm->append_unciphered(buffer, source_view);
 
@@ -61,7 +61,6 @@ Cipher::Cipher(const Cipher &rhs_cipher) :
   ciphered(new char[rhs_cipher.ciphered.len], rhs_cipher.ciphered.len),
   plaintext_buffer(nullptr)
 {
-  // copy only ciphered data
   for (size_t i = 0; i < ciphered.len; ++i)
     ciphered.data[i] = rhs_cipher.ciphered.data[i];
 }

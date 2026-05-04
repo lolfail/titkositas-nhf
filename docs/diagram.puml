@@ -18,13 +18,17 @@ package views as "View Struct-ok" {
 class Cipher {
   - cipher_algorithm : Algorithm*
   - ciphered : CipherView
+  + len() const : size_t
   ----
   - uncipher_self_into(target : CipherView&) const : void
   - cipher_into_self(source : ConstCipherView) : void
 
   + recipher_and_assign_data(source : const Cipher&) : void
+  -- C String kompatibilitás --
+  - plaintext_buffer : char* <<mutable>>
+  + c_str() const : char*
   -- konstruktorok/destruktor --
-  + Cipher(injected_algorithm : Algorithm*)
+  + Cipher(injected_algorithm : Algorithm* = nullptr)
   + Cipher(copied_cipher : const Cipher&)
   ~ Cipher()
   -- iterator metódusok --

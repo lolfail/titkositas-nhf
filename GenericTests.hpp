@@ -5,9 +5,10 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "Cipher.h"
-#include "gtest_lite.h"
 #include "memtrace.h"
+#include "gtest_lite.h"
+
+#include "Cipher.h"
 
 namespace testing {
 

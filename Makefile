@@ -21,9 +21,13 @@ cipher: $(OBJECTS)
 
 
 # Documentation Generation
-DOCSOURCES = $(wildcard docs/*.md) docs/diagram.puml
-DOCOBJECTS = $(DOCSOURCES:.md=.pdf) docs/diagram.svg
-doc: $(DOCOBJECTS)
+DOCSOURCES := $(wildcard docs/*.md)
+DOCOBJECTS := $(DOCSOURCES:.md=.pdf)
+
+SVGSOURCES := docs/diagram.puml
+SVGOBJECTS := docs/diagram.svg
+
+doc: $(SVGOBJECTS) $(DOCOBJECTS)
 
 %.svg: %.puml
 	plantuml $< -tsvg
@@ -35,3 +39,4 @@ doc: $(DOCOBJECTS)
 .PHONY: clean
 clean:
 	rm -f *.o *.d cipher
+	rm -f docs/*.pdf docs/*.svg docs/*.png

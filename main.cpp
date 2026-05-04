@@ -15,6 +15,9 @@
  * Megjegyzés:
  * A tesztesetek jelenleg statikusak, olyan értelemben, hogy még nem fájlból olvasódnak be a tesztadatok,
  * hanem a tesztekbe vannak "égetve". Azonban ez csak egyelőre van így.
+ *
+ * Verziókövetés:
+ * https://github.com/lolfail/titkositas-nhf
  */
 
 int main() {
@@ -187,7 +190,7 @@ void testing::iterator::call_tests() {
     it_shifted = (it + shift) - shift;
     EXPECT_EQ(iterator_position_from_start(cipher, it_shifted), 0)
       << "Addition then subtraction of the same value on the same iterator failed to return it to the beginning!";
-    EXPECT_NE(&it_shifted, &it) // meh
+    EXPECT_NE(&it_shifted, &it) // TODO! smarter check
       << "Subtraction on an iterator modified original iterator!";
   END
 

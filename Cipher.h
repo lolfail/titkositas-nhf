@@ -21,10 +21,10 @@ public:
   void recipher_and_assign_data(const Cipher&);
 
   Cipher(Algorithm* = nullptr);
-  // Cipher OWNS algorithm will be freed => can not be shared
+  // Cipher OWNS algorithm, will be freed => can not be shared
   ~Cipher();
 
-  // Copying algorithms all deep copy, to avoid double frees
+  // everybody deep copies
   Cipher(const Cipher&);
   friend void swap(Cipher&, Cipher&) noexcept;
   Cipher& operator=(const Cipher);
@@ -35,7 +35,7 @@ public:
   Cipher operator+(const char*) const;
   friend Cipher operator+(const char*, const Cipher&);
 
-  // these call a compatibility check algorithm and may uncipher the entire thing
+  // these call a compatibility checking method and may uncipher the entire object
   Cipher& operator+=(const Cipher&);
   Cipher operator+(const Cipher&);
 
