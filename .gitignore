@@ -7,3 +7,6 @@ gtest_lite.h
 memtrace.*
 
 docs/reloaddiagram.sh
+
+.clang-format
+*.vim

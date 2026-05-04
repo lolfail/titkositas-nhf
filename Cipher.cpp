@@ -95,10 +95,17 @@ Cipher& Cipher::operator+=(const char *cstr) {
   ciphered = ciphered_appended;
   return *this;
 }
-Cipher Cipher::operator+(const char *cstr) {
+Cipher Cipher::operator+(const char *cstr) const {
   Cipher cipher_cpy = *this;
   cipher_cpy += cstr;
   return cipher_cpy;
+}
+
+Cipher operator+(const char *lhs_cstr, const Cipher &rhs_cipher) {
+  Cipher cipher_from_cstr(rhs_cipher.cipher_algorithm->clone());
+  cipher_from_cstr = lhs_cstr;
+  cipher_from_cstr += rhs_cipher;
+  return cipher_from_cstr;
 }
 
 Cipher& Cipher::operator+=(const Cipher &rhs_cipher) {
@@ -146,6 +153,7 @@ bool Cipher::operator==(const Cipher &rhs_cipher) const {
 bool Cipher::operator!=(const Cipher &rhs_cipher) const {
   return !(*this == rhs_cipher);
 }
+
 bool Cipher::operator==(const char *rhs_cstr) const {
   bool are_equal_length = this->ciphered.len == strlen(rhs_cstr);
   if (!are_equal_length) return false;
@@ -158,6 +166,12 @@ bool Cipher::operator==(const char *rhs_cstr) const {
 }
 bool Cipher::operator!=(const char *rhs_cstr) const {
   return !(*this == rhs_cstr);
+}
+bool operator==(const char *lhs_cstr, const Cipher &rhs_cipher) {
+  return rhs_cipher == lhs_cstr;
+}
+bool operator!=(const char *lhs_cstr, const Cipher &rhs_cipher) {
+  return rhs_cipher != lhs_cstr;
 }
 
 char* Cipher::c_str() const {

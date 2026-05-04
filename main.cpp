@@ -7,75 +7,25 @@
 #include "GenericTests.hpp"
 
 #include "Cipher.h"
-#include "CipherAlgorithm.h"
 
 #include "CaesarCipher.h"
 #include "XORCipher.h"
 
+/**
+ * Megjegyzés:
+ * A tesztesetek jelenleg statikusak, olyan értelemben, hogy még nem fájlból olvasódnak be a tesztadatok,
+ * hanem a tesztekbe vannak "égetve". Azonban ez csak egyelőre van így.
+ */
+
 int main() {
   using namespace testing;
-
-  TEST(integrity, empty_c_str_call)
-    const int key = 42;
-    Cipher empty(new XORCipher(key));
-
-    EXPECT_NO_THROW(empty.c_str())
-      << "Did not handle empty string without errors!";
-    EXPECT_STREQ(empty.c_str(), "")
-      << "Queried cstring is not an empty string (or not NUL terminated)!";
-  END
-  TEST(integrity, copy_constructor)
-    const int key = 42;
-    const char *cstr = "Hello World!";
-
-    Cipher to_copy = testing::allocate_initialized_cipher<XORCipher>(key, cstr);
-
-    Cipher copy_constructed = to_copy;
-    EXPECT_STREQ(copy_constructed.c_str(), to_copy.c_str())
-      << "Constructed object's stored text differs from source!";
-  END
-
-  TEST(assignation, cstr)
-    const int key = 42;
-    const char *cstr = "Hello World!";
-
-    Cipher destination = testing::allocate_initialized_cipher<XORCipher>(key, cstr);
-
-    EXPECT_STREQ(destination.c_str(), cstr)
-      << "Assigned object's stored text differs!";
-  END
-  TEST(assignation, class_same_key)
-    const int key = 42;
-    const char *cstr = "Hello World!";
-
-    Cipher source = testing::allocate_initialized_cipher<XORCipher>(key, cstr);
-
-    Cipher destination(new XORCipher(key));
-
-    destination = source;
-    EXPECT_STREQ(destination.c_str(), source.c_str())
-      << "Assigned objects' stored text differs!";
-  END
-  TEST(assignation, class_diff_key)
-    const int key_source = 42;
-    const int key_destination = 30;
-    const char *cstr = "Hello World!";
-
-    Cipher source = testing::allocate_initialized_cipher<XORCipher>(key_source, cstr);
-
-    Cipher destination(new XORCipher(key_destination));
-
-    destination = source;
-    EXPECT_STREQ(destination.c_str(), source.c_str())
-      << "Assigned objects' stored text differs!";
-  END
 
   TEST(indexing, valid_index)
     const int key = 42;
     const char *cstr = "0123456789";
     const size_t index = 2;
 
-    Cipher haystack = testing::allocate_initialized_cipher<XORCipher>(key, cstr);
+    Cipher haystack = allocate_initialized_cipher<XORCipher>(key, cstr);
 
     EXPECT_NO_THROW(haystack[index]);
     EXPECT_EQ(haystack[index], cstr[index]);
@@ -85,11 +35,12 @@ int main() {
     const char *cstr = "0123456789";
     const size_t index = strlen(cstr);
 
-    Cipher haystack = testing::allocate_initialized_cipher<XORCipher>(key, cstr);
+    Cipher haystack = allocate_initialized_cipher<XORCipher>(key, cstr);
 
     EXPECT_THROW(haystack[index], const std::out_of_range&);
   END
 
+  assignation::call_tests();
   concatenation::call_tests();
   logic::call_tests();
   iterator::call_tests();
@@ -97,78 +48,113 @@ int main() {
   return 0;
 }
 
+void testing::assignation::call_tests() {
+  using namespace assignation;
+
+  TEST(assignation, empty_c_str_call)
+    const int key = 42;
+    Cipher empty(new XORCipher(key));
+
+    EXPECT_NO_THROW(empty.c_str())
+      << "Did not handle empty string without errors!";
+    EXPECT_STREQ(empty.c_str(), "")
+      << "Queried cstring is not an empty string (or not NUL terminated)!";
+  END
+  TEST(assignation, copy_constructor)
+    const int key = 42;
+    const char *cstr = "Hello World!";
+
+    Cipher to_copy = allocate_initialized_cipher<XORCipher>(key, cstr);
+
+    Cipher copy_constructed = to_copy;
+    EXPECT_STREQ(copy_constructed.c_str(), to_copy.c_str())
+      << "Constructed object's stored text differs from source!";
+  END
+
+  TEST(assignation, assign_cstr)
+    check<XORCipher, const char*>(42, 0, "Hello World!");
+  END
+
+  TEST(assignation, assign_class)
+    // same algo same key
+    check<XORCipher, XORCipher>(42, 42, "Hello World!");
+    // same algo diff key
+    check<XORCipher, XORCipher>(42, 32, "Hello World!");
+    // diff algo
+    check<XORCipher, CaesarCipher>(42, -3, "Hello World!");
+  END
+}
+
 void testing::logic::call_tests() {
+  using namespace logic;
+
   TEST(logical_operations, equality_cstr)
+    // check for true
     check<true, XORCipher, const char*>("abcdefg", 42, "abcdefg", 0);
+    // check for false
+    check<true, XORCipher, const char*>("abc", 42, "def", 0);
+    // check global overload
+    check<true, const char*, XORCipher>("abcdefg", 0, "abcdefg", 42);
   END
   TEST(logical_operations, inequality_cstr)
+    // check for true
     check<false, XORCipher, const char*>("abcdefg", 42, "gfedcba", 0);
-  END
-  // TEST(logical_operations, equality_cstr_global)
-  //   test_logic_operation<true, const char*, XORCipher>("abcdefg", 0, "abcdefg", 42);
-  // END
-  // assume all other operations can be false
-  TEST(logical_operations, equality_cstr_false)
-    check<true, XORCipher, const char*>("abc", 42, "def", 0);
-  END
-  TEST(logical_operations, inequality_cstr_false)
+    // check for false
     check<false, XORCipher, const char*>("abc", 42, "abc", 0);
+    // check global overload
+    check<false, const char*, XORCipher>("abcdefg", 0, "abcdefg", 42);
   END
-  TEST(logical_operations, equality_same_key)
+
+  TEST(logical_operations, equality_class)
+    // same algo same key
     check<true, XORCipher, XORCipher>("abcdefg", 42, "abcdefg", 42);
-  END
-  TEST(logical_operations, inequality_same_key)
-    check<false, XORCipher, XORCipher>("abcdefg", 42, "gfedcba", 42);
-  END
-  TEST(logical_operations, equality_diff_key)
+    // same algo diff key
     check<true, XORCipher, XORCipher>("abcdefg", 42, "abcdefg", 30);
-  END
-  TEST(logical_operations, inequality_diff_key)
-    check<false, XORCipher, XORCipher>("abcdefg", 42, "gfedcba", 30);
-  END
-  TEST(logical_operations, equality_diff_class)
+    // diff algo
     check<true, XORCipher, CaesarCipher>("abcdefg", 42, "abcdefg", -3);
   END
-  TEST(logical_operations, inequality_diff_key)
+  TEST(logical_operations, inequality_class)
+    // same algo same key
+    check<false, XORCipher, XORCipher>("abcdefg", 42, "gfedcba", 42);
+    // same algo diff key
+    check<false, XORCipher, XORCipher>("abcdefg", 42, "gfedcba", 30);
+    // diff algo
     check<false, XORCipher, CaesarCipher>("abcdefg", 42, "gfedcba", -3);
   END
 }
 
 void testing::concatenation::call_tests() {
+  using namespace concatenation;
+
   TEST(concatenation, append_cstr)
     check<true, XORCipher, const char*>("Hello ", 42, "World!", 0);
   END
   TEST(concatenation, concat_cstr)
     check<false, XORCipher, const char*>("Hello ", 42, "World!", 0);
+    check<false, const char*, XORCipher>("Hello ", 0, "World!", 42);
   END
-  // TEST(concatenation, concat_cstr_global)
-  //   test_concatenation<false, const char*, XORCipher>("Hello ", 0, "World!", 42);
-  // END
-  TEST(concatenation, append_class_same_key)
+  TEST(concatenation, append_class)
+    // same algo same key
     check<true, XORCipher, XORCipher>("Hello ", 42, "World!", 42);
-  END
-  TEST(concatenation, concat_class_same_key)
-    check<false, XORCipher, XORCipher>("Hello ", 42, "World!", 42);
-  END
-  TEST(concatenation, append_class_diff_key)
+    // same algo diff key
     check<true, XORCipher, XORCipher>("Hello ", 42, "World!", 30);
-  END
-  TEST(concatenation, concat_class_diff_key)
-    check<false, XORCipher, XORCipher>("Hello ", 42, "World!", 30);
-  END
-
-  // diff key for diff class is not needed as it is reciphered by default
-  TEST(concatenation, append_diff_class)
+    // diff algo
     check<true, XORCipher, CaesarCipher>("Hello ", 42, "World!", -3);
+
   END
-  TEST(concatenation, concat_diff_class)
+  TEST(concatenation, concat_class)
+    // same algo same key
+    check<false, XORCipher, XORCipher>("Hello ", 42, "World!", 42);
+    // same algo diff key
+    check<false, XORCipher, XORCipher>("Hello ", 42, "World!", 30);
+    // diff algo
     check<true, XORCipher, CaesarCipher>("Hello ", 42, "World!", -3);
   END
 }
 
 void testing::iterator::call_tests() {
   TEST(iterator, begin_end_no_throw)
-    Cipher cipher = testing::allocate_initialized_cipher<XORCipher>(42, "Hello World!");
+    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, "Hello World!");
 
     EXPECT_NO_THROW(cipher.begin())
       << ".begin() failed!";
@@ -178,7 +164,7 @@ void testing::iterator::call_tests() {
 
   TEST(iterator, dereference)
     const char *cstr = "abc";
-    Cipher cipher = testing::allocate_initialized_cipher<XORCipher>(42, cstr);
+    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, cstr);
     Cipher::const_iterator it = cipher.begin();
 
     EXPECT_NO_THROW(*it)
@@ -188,8 +174,7 @@ void testing::iterator::call_tests() {
   END
 
   TEST(iterator, add_sub_distance)
-    const char *cstr = "abcdefg";
-    Cipher cipher = testing::allocate_initialized_cipher<XORCipher>(42, cstr);
+    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, "abcdefg");
     Cipher::const_iterator it = cipher.begin();
 
     const size_t shift = 2;
@@ -206,41 +191,35 @@ void testing::iterator::call_tests() {
       << "Subtraction on an iterator modified original iterator!";
   END
 
-  TEST(iterator, prefix_dec)
+  TEST(iterator, prefix)
     auto prefix_decrement_callback = [](Cipher::const_iterator &it) { return --it; };
-    testing::iterator::check_offsetting<XORCipher>(prefix_decrement_callback, 42, "Hello World!", IteratorOffsettingValues(2, 1, 1));
-  END
-  TEST(iterator, prefix_inc)
+    check_offsetting<XORCipher>(prefix_decrement_callback, 42, "Hello World!", IteratorOffsettingValues(2, 1, 1));
+
     auto prefix_increment_callback = [](Cipher::const_iterator &it) { return ++it; };
-    testing::iterator::check_offsetting<XORCipher>(prefix_increment_callback, 42, "Hello World!", IteratorOffsettingValues(2, 3, 3));
+    check_offsetting<XORCipher>(prefix_increment_callback, 42, "Hello World!", IteratorOffsettingValues(2, 3, 3));
   END
-  TEST(iterator, postfix_dec)
+  TEST(iterator, postfix)
     auto prefix_decrement_callback = [](Cipher::const_iterator &it) { return it--; };
-    testing::iterator::check_offsetting<XORCipher>(prefix_decrement_callback, 42, "Hello World!", IteratorOffsettingValues(2, 2, 1));
-  END
-  TEST(iterator, postfix_inc)
+    check_offsetting<XORCipher>(prefix_decrement_callback, 42, "Hello World!", IteratorOffsettingValues(2, 2, 1));
+
     auto prefix_increment_callback = [](Cipher::const_iterator &it) { return it++; };
-    testing::iterator::check_offsetting<XORCipher>(prefix_increment_callback, 42, "Hello World!", IteratorOffsettingValues(2, 2, 3));
+    check_offsetting<XORCipher>(prefix_increment_callback, 42, "Hello World!", IteratorOffsettingValues(2, 2, 3));
   END
 
-  TEST(iterator, compound_assignment_add)
+  TEST(iterator, compound_assignment)
     const size_t shift = 2;
     const char *cstr = "Hello World!";
 
     auto compound_add = [shift](Cipher::const_iterator &it) {return it += shift;};
-    testing::iterator::check_offsetting<XORCipher>(compound_add, 42, cstr, IteratorOffsettingValues(2, 4, 4));
-  END
-  TEST(iterator, compound_assigment_sub)
-    const size_t shift = 2;
-    const char *cstr = "Hello World!";
+    check_offsetting<XORCipher>(compound_add, 42, cstr, IteratorOffsettingValues(2, 4, 4));
 
     auto compound_sub = [shift](Cipher::const_iterator &it) {return it -= shift;};
-    testing::iterator::check_offsetting<XORCipher>(compound_sub, 42, cstr, IteratorOffsettingValues(2, 0, 0));
+    check_offsetting<XORCipher>(compound_sub, 42, cstr, IteratorOffsettingValues(2, 0, 0));
   END
 
   TEST(iterator, indexing)
     const char *cstr = "abc";
-    Cipher cipher = testing::allocate_initialized_cipher<XORCipher>(42, cstr);
+    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, cstr);
 
     auto index_test =[cipher, cstr](int shift, int idx) {
       Cipher::const_iterator it = cipher.begin() + shift;
@@ -252,36 +231,31 @@ void testing::iterator::call_tests() {
     index_test(1, -1);
   END
 
-  // there isn't any dynamic test naming functionality :(
-  const char *cstr = "abcdefga";
-  TEST(iterator, logic_eq)
-    check_logic<OpType::eq, XORCipher>(42, cstr, 0, 0);
-    check_logic<OpType::eq, XORCipher>(42, cstr, 0, 4);
-    check_logic<OpType::eq, XORCipher>(42, cstr, 0, 3);
-  END
-  TEST(iterator, logic_neq)
-    check_logic<OpType::neq, XORCipher>(42, cstr, 0, 0);
-    check_logic<OpType::neq, XORCipher>(42, cstr, 0, 4);
-    check_logic<OpType::neq, XORCipher>(42, cstr, 0, 3);
+  TEST(iterator, logic_equality_inequality)
+    const char *cstr = "abcdefga";
+    const int key = 42;
+
+    check_logic<OpType::eq, XORCipher>(key, cstr, 0, 0);
+    check_logic<OpType::eq, XORCipher>(key, cstr, 0, 4);
+    check_logic<OpType::eq, XORCipher>(key, cstr, 0, 3);
+
+    check_logic<OpType::neq, XORCipher>(key, cstr, 0, 0);
+    check_logic<OpType::neq, XORCipher>(key, cstr, 0, 4);
+    check_logic<OpType::neq, XORCipher>(key, cstr, 0, 3);
   END
 
-  TEST(iterator, logic_lt)
-    check_logic<OpType::lt, XORCipher>(42, cstr, 0, 1);
-  END
-  TEST(iterator, logic_lte)
-    check_logic<OpType::lte, XORCipher>(42, cstr, 0, 1);
-  END
-  TEST(iterator, logic_gt)
-    check_logic<OpType::gt, XORCipher>(42, cstr, 0, 1);
-  END
-  TEST(iterator, logic_gte)
-    check_logic<OpType::gte, XORCipher>(42, cstr, 0, 1);
+  TEST(iterator, logic_comparison)
+    const char *cstr = "abcdefga";
+    const int key = 42;
+
+    check_logic<OpType::lt, XORCipher>(key, cstr, 0, 1);
+    check_logic<OpType::lte, XORCipher>(key, cstr, 0, 1);
+    check_logic<OpType::gt, XORCipher>(key, cstr, 0, 1);
+    check_logic<OpType::gte, XORCipher>(key, cstr, 0, 1);
   END
 
   TEST(iterator, foreach)
-    const int key = 42;
-    const char *cstr = "Hello World!";
-    Cipher cipher = allocate_initialized_cipher<XORCipher>(key, cstr);
+    Cipher cipher = allocate_initialized_cipher<XORCipher>(42, "Hello World");
 
     char *deciphered_buf = new char[cipher.len() + 1]; // defer delete
 

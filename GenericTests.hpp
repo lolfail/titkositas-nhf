@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstddef>
 #include <cstring>
 #include <stdexcept>
@@ -6,18 +7,19 @@
 
 #include "Cipher.h"
 #include "gtest_lite.h"
+#include "memtrace.h"
 
 namespace testing {
 
-  inline char* allocate_concatenated(const char* lhs, const char* rhs) {
-    char* concat_buf = new char[strlen(lhs) + strlen(rhs) + 1];
+  inline char *allocate_concatenated(const char *lhs, const char *rhs) {
+    char *concat_buf = new char[strlen(lhs) + strlen(rhs) + 1];
     strcpy(concat_buf, lhs);
     strcat(concat_buf, rhs);
     return concat_buf;
   };
 
   template <typename TAlgorithm, typename TAlgorithmParam>
-  Cipher allocate_initialized_cipher(TAlgorithmParam init_param, const char* cstr) {
+  Cipher allocate_initialized_cipher(TAlgorithmParam init_param, const char *cstr) {
     Cipher initialized_cipher(new TAlgorithm(init_param));
     initialized_cipher = cstr;
     return initialized_cipher;
@@ -25,38 +27,70 @@ namespace testing {
 
   template <bool is_cstr>
   using CStringElseCipher =
-    typename std::conditional<is_cstr, const char*, Cipher>::type;
+    typename std::conditional<is_cstr, const char *, Cipher>::type;
+
+  inline const char *get_cstr_value(const Cipher &cipher) { return cipher.c_str(); }
+  inline const char *get_cstr_value(const char *cstr) { return cstr; }
 
   // so logic is built into typesystem
-  template <bool to_enable>
-  using void_return_if =
-    typename std::enable_if<to_enable, void>::type;
+  template <bool to_enable, typename Treturn>
+  using return_if =
+    typename std::enable_if<to_enable, Treturn>::type;
 
   template <typename TAlgorithm>
   constexpr bool is_cstr() {
-    return std::is_same<TAlgorithm, const char*>::value;
+    return std::is_same<TAlgorithm, const char *>::value;
   }
 
   template <typename TAlgorithm>
-  void_return_if<!is_cstr<TAlgorithm>()>
-  init_polymorphic_object(Cipher& target, int key, const char* cstr) {
+  return_if<!is_cstr<TAlgorithm>(), void>
+  init_polymorphic_object(Cipher &target, int key, const char *cstr) {
     target = Cipher(new TAlgorithm(key));
     target = cstr;
   }
   template <typename TAlgorithm>
-  void_return_if<is_cstr<TAlgorithm>()>
-  init_polymorphic_object(const char*& target, int key, const char* cstr) {
+  return_if<is_cstr<TAlgorithm>(), void>
+  init_polymorphic_object(const char *&target, int key, const char *cstr) {
     target = cstr;
   }
+
+  namespace assignation {
+    void call_tests();
+
+    template <typename TDestAlgorithm, typename TSrcAlgorithm, typename TDestAlgorithmParam,  typename TSrcAlgorithmParam>
+    void check(TDestAlgorithmParam dest_key, TSrcAlgorithmParam src_key, const char *cstr) {
+      constexpr bool is_dest_cstr = is_cstr<TDestAlgorithm>();
+      constexpr bool is_src_cstr = is_cstr<TSrcAlgorithm>();
+
+      static_assert(!is_dest_cstr, "Assignation: const char* = ... is not defined!");
+
+      Cipher destination(new TDestAlgorithm(dest_key));
+
+      CStringElseCipher<is_src_cstr> source;
+      init_polymorphic_object<TSrcAlgorithm>(source, src_key, cstr);
+
+      destination = source;
+      EXPECT_STREQ(destination.c_str(), get_cstr_value(source))
+        << "Assigned object's value differs from that of source!";
+    }
+  }  // namespace assignation
 
   namespace concatenation {
     void call_tests();
 
-    inline const char* get_cstr_value(const Cipher& cipher) { return cipher.c_str(); }
-    inline const char* get_cstr_value(const char* cstr) { return cstr; }
+    template <bool is_append, typename Tlhs, typename Trhs>
+    return_if<is_append, Cipher>
+    append_else_concat(Tlhs &lhs, Trhs &rhs) {
+      return lhs += rhs;
+    }
+    template <bool is_append, typename Tlhs, typename Trhs>
+    return_if<not is_append, Cipher>
+    append_else_concat(Tlhs &lhs, Trhs &rhs) {
+      return lhs + rhs;
+    }
 
     template <bool is_append, typename Tlhs, typename Trhs>
-    void check(const char* init_lhs, const int key_lhs, const char* init_rhs, const int key_rhs) {
+    void check(const char *init_lhs, const int key_lhs, const char *init_rhs, const int key_rhs) {
       constexpr bool is_lhs_cstr = is_cstr<Tlhs>();
       constexpr bool is_rhs_cstr = is_cstr<Trhs>();
 
@@ -68,11 +102,7 @@ namespace testing {
       CStringElseCipher<is_rhs_cstr> rhs;
       init_polymorphic_object<Trhs>(rhs, key_rhs, init_rhs);
 
-      Cipher resulting_cipher;
-      if (is_append)
-        resulting_cipher = (lhs += rhs);
-      else
-        resulting_cipher = lhs + rhs;
+      Cipher resulting_cipher = append_else_concat<is_append>(lhs, rhs);
 
       if (!is_append) {
         EXPECT_STREQ(get_cstr_value(lhs), init_lhs)
@@ -82,7 +112,7 @@ namespace testing {
       EXPECT_STREQ(get_cstr_value(rhs), init_rhs)
         << "RHS's stored data was changed!";
 
-      char* expected_result = allocate_concatenated(init_lhs, init_rhs);
+      char *expected_result = allocate_concatenated(init_lhs, init_rhs);
       EXPECT_STREQ(resulting_cipher.c_str(), expected_result)
         << "Result differs from expected!";
       delete[] expected_result;
@@ -94,7 +124,7 @@ namespace testing {
     void call_tests();
 
     template <bool eq_op, typename Tlhs, typename Trhs>
-    void check(const char* init_lhs, const int key_lhs, const char* init_rhs, const int key_rhs) {
+    void check(const char *init_lhs, const int key_lhs, const char *init_rhs, const int key_rhs) {
       constexpr bool is_lhs_cstr = is_cstr<Tlhs>();
       constexpr bool is_rhs_cstr = is_cstr<Trhs>();
 
@@ -120,7 +150,7 @@ namespace testing {
   namespace iterator {
     void call_tests();
 
-    inline ptrdiff_t iterator_position_from_start(const Cipher& parent, const Cipher::const_iterator& it) {
+    inline ptrdiff_t iterator_position_from_start(const Cipher &parent, const Cipher::const_iterator &it) {
       return it - parent.begin();
     }
 
@@ -132,7 +162,7 @@ namespace testing {
           : initial_shift(init), returned_expected_shift(ret), original_expected_shift(orig) {}
     };
     template <typename TAlgorithm, typename TAlgorithmParam, typename F>
-    void check_offsetting(F iterator_operator, TAlgorithmParam key, const char* cstr, const IteratorOffsettingValues& iter_offsets) {
+    void check_offsetting(F iterator_operator, TAlgorithmParam key, const char *cstr, const IteratorOffsettingValues &iter_offsets) {
       Cipher cipher = allocate_initialized_cipher<TAlgorithm>(key, cstr);
       Cipher::const_iterator it_original = cipher.begin() + iter_offsets.initial_shift;
 
@@ -165,8 +195,8 @@ namespace testing {
     }
 
     template <OpType operation, typename TAlgorithm, typename TAlgorithmParam>
-    void_return_if<check_flag(operation, LOGIC_FLAG)>
-    check_logic(TAlgorithmParam key, const char* cstr, size_t lhs_index, size_t rhs_index) {
+    return_if<check_flag(operation, LOGIC_FLAG), void>
+    check_logic(TAlgorithmParam key, const char *cstr, size_t lhs_index, size_t rhs_index) {
       static_assert(!check_flag(operation, GT_FLAG), "GT flag will have no effect, should not even be set!");
       const bool is_equality = check_flag(operation, EQ_FLAG);
 
@@ -183,8 +213,8 @@ namespace testing {
     }
 
     template <OpType operation, typename TAlgorithm, typename TAlgorithmParam>
-    void_return_if<not check_flag(operation, LOGIC_FLAG)>
-    check_logic(TAlgorithmParam key, const char* cstr, size_t small_index, size_t large_index) {
+    return_if<not check_flag(operation, LOGIC_FLAG), void>
+    check_logic(TAlgorithmParam key, const char *cstr, size_t small_index, size_t large_index) {
       const bool is_eq_allowed = static_cast<int>(operation) & EQ_FLAG;
       const bool is_gt = static_cast<int>(operation) & GT_FLAG;
 

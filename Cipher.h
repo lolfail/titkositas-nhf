@@ -32,7 +32,8 @@ public:
   Cipher& operator=(const char*);
 
   Cipher& operator+=(const char*);
-  Cipher operator+(const char*);
+  Cipher operator+(const char*) const;
+  friend Cipher operator+(const char*, const Cipher&);
 
   // these call a compatibility check algorithm and may uncipher the entire thing
   Cipher& operator+=(const Cipher&);
@@ -44,6 +45,9 @@ public:
   bool operator!=(const Cipher&) const;
   bool operator==(const char*) const;
   bool operator!=(const char*) const;
+
+  friend bool operator==(const char*, const Cipher&);
+  friend bool operator!=(const char*, const Cipher&);
 
   // c_str is lazily evaluated, and result must be immediately used as it may change
   char* c_str() const;
