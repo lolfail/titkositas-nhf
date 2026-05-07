@@ -40,7 +40,7 @@ int main() {
 
     Cipher haystack = allocate_initialized_cipher<XORCipher>(key, cstr);
 
-    EXPECT_THROW(haystack[index], const std::out_of_range&);
+    EXPECT_THROW(haystack[index], const std::out_of_range);
   END
 
   assignation::call_tests();

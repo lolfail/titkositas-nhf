@@ -85,7 +85,7 @@ namespace testing {
       return lhs += rhs;
     }
     template <bool is_append, typename Tlhs, typename Trhs>
-    return_if<not is_append, Cipher>
+    return_if<!is_append, Cipher>
     append_else_concat(Tlhs &lhs, Trhs &rhs) {
       return lhs + rhs;
     }
@@ -214,7 +214,7 @@ namespace testing {
     }
 
     template <OpType operation, typename TAlgorithm, typename TAlgorithmParam>
-    return_if<not check_flag(operation, LOGIC_FLAG), void>
+    return_if<!check_flag(operation, LOGIC_FLAG), void>
     check_logic(TAlgorithmParam key, const char *cstr, size_t small_index, size_t large_index) {
       const bool is_eq_allowed = static_cast<int>(operation) & EQ_FLAG;
       const bool is_gt = static_cast<int>(operation) & GT_FLAG;
