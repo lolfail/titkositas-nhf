@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <type_traits>
 
+#include "TestFileHandling.hpp"
 #include "memtrace.h"
 #include "gtest_lite.h"
 
@@ -56,7 +57,7 @@ namespace testing {
   }
 
   namespace assignation {
-    void call_tests();
+    void call_tests(TestCaseResource&);
 
     template <typename TDestAlgorithm, typename TSrcAlgorithm, typename TDestAlgorithmParam,  typename TSrcAlgorithmParam>
     void check(TDestAlgorithmParam dest_key, TSrcAlgorithmParam src_key, const char *cstr) {
@@ -77,7 +78,7 @@ namespace testing {
   }  // namespace assignation
 
   namespace concatenation {
-    void call_tests();
+    void call_tests(TestCaseResource&);
 
     template <bool is_append, typename Tlhs, typename Trhs>
     return_if<is_append, Cipher>
@@ -122,7 +123,7 @@ namespace testing {
   }  // namespace concatenation
 
   namespace logic {
-    void call_tests();
+    void call_tests(TestCaseResource&);
 
     template <bool eq_op, typename Tlhs, typename Trhs>
     void check(const char *init_lhs, const int key_lhs, const char *init_rhs, const int key_rhs) {
@@ -149,7 +150,7 @@ namespace testing {
   }  // namespace logic
 
   namespace iterator {
-    void call_tests();
+    void call_tests(TestCaseResource&);
 
     inline ptrdiff_t iterator_position_from_start(const Cipher &parent, const Cipher::const_iterator &it) {
       return it - parent.begin();

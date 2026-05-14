@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <ostream>
+
 #include "CipherAlgorithm.h"
 #include "CipherView.h"
 #include "XORCipher.h"
