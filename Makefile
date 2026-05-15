@@ -4,7 +4,7 @@ DEBUGFLAGS = -MMD -MP -DMEMTRACE -g
 
 
 # Program Generation
-SOURCES = main.cpp Cipher.cpp CipherIterator.cpp XORCipher.cpp CaesarCipher.cpp
+SOURCES = main.cpp testcases.cpp IOUtils.cpp Cipher.cpp CipherIterator.cpp XORCipher.cpp CaesarCipher.cpp
 DEBUG = memtrace.cpp
 
 CPP = $(SOURCES) $(DEBUG)

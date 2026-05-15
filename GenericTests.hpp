@@ -5,13 +5,19 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "TestFileHandling.hpp"
-#include "memtrace.h"
-#include "gtest_lite.h"
-
 #include "Cipher.h"
+#include "IOUtils.hpp"
+#include "gtest_lite.h"
+#include "memtrace.h"
 
 namespace testing {
+
+  inline bool radius_of_index_within_cstr_contents(char *cstr, size_t idx, size_t radius) {
+    size_t len = strlen(cstr);
+    bool idx_goes_negative = radius > idx;
+    bool idx_overflows_cstring = (idx + radius) > len;  // NUL chr is not allowed
+    return !(idx_goes_negative || idx_overflows_cstring);
+  }
 
   inline char *allocate_concatenated(const char *lhs, const char *rhs) {
     char *concat_buf = new char[strlen(lhs) + strlen(rhs) + 1];
@@ -56,10 +62,14 @@ namespace testing {
     target = cstr;
   }
 
-  namespace assignation {
-    void call_tests(TestCaseResource&);
+  namespace indexing {
+    void call_tests(TestCaseResource &);
+  } // namespace indexing
 
-    template <typename TDestAlgorithm, typename TSrcAlgorithm, typename TDestAlgorithmParam,  typename TSrcAlgorithmParam>
+  namespace assignation {
+    void call_tests(TestCaseResource &);
+
+    template <typename TDestAlgorithm, typename TSrcAlgorithm, typename TDestAlgorithmParam, typename TSrcAlgorithmParam>
     void check(TDestAlgorithmParam dest_key, TSrcAlgorithmParam src_key, const char *cstr) {
       constexpr bool is_dest_cstr = is_cstr<TDestAlgorithm>();
       constexpr bool is_src_cstr = is_cstr<TSrcAlgorithm>();
@@ -78,7 +88,7 @@ namespace testing {
   }  // namespace assignation
 
   namespace concatenation {
-    void call_tests(TestCaseResource&);
+    void call_tests(TestCaseResource &);
 
     template <bool is_append, typename Tlhs, typename Trhs>
     return_if<is_append, Cipher>
@@ -123,7 +133,7 @@ namespace testing {
   }  // namespace concatenation
 
   namespace logic {
-    void call_tests(TestCaseResource&);
+    void call_tests(TestCaseResource &);
 
     template <bool eq_op, typename Tlhs, typename Trhs>
     void check(const char *init_lhs, const int key_lhs, const char *init_rhs, const int key_rhs) {
@@ -150,7 +160,7 @@ namespace testing {
   }  // namespace logic
 
   namespace iterator {
-    void call_tests(TestCaseResource&);
+    void call_tests(TestCaseResource &);
 
     inline ptrdiff_t iterator_position_from_start(const Cipher &parent, const Cipher::const_iterator &it) {
       return it - parent.begin();
@@ -190,7 +200,6 @@ namespace testing {
       neq = LOGIC_FLAG,
       eq = LOGIC_FLAG | EQ_FLAG
     };
-
     template <typename ContainerType, typename FlagType>
     constexpr bool check_flag(ContainerType container, FlagType flag) {
       return static_cast<FlagType>(container) & flag;
@@ -234,7 +243,7 @@ namespace testing {
           case OpType::gte:
             return lhs_it >= rhs_it;
           default:
-            throw std::invalid_argument("The specified type of operation should not exist!");
+            throw std::range_error("The specified type of operation should not exist!");
         }
       };
 
